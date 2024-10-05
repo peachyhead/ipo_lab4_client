@@ -11,7 +11,7 @@ import java.net.Socket;
 import java.text.MessageFormat;
 import java.util.Arrays;
 
-import static handler.XMLHandler.getXMLFromImage;
+import static handler.XMLHandler.deserializeVisualObject;
 
 public class ServerHandler implements Runnable {
     
@@ -51,22 +51,22 @@ public class ServerHandler implements Runnable {
         }
     }
 
-    public void sendToServer(String mediaID, String conversationID, String path)
+    public void sendToServer(String visualID, String conversationID, String visualData)
             throws IOException {
-        var mediaData = getXMLFromImage(path);
         var data = MessageFormat.format("{0}|{1}|{2}",
-                ServerRequestCode.imageUpload, mediaID, mediaData);
-        conversationStorage.addToLoad(mediaID, conversationID);
+                ServerRequestCode.visualUpload, visualID, visualData);
+        conversationStorage.addToLoad(visualID, conversationID);
         var storage = conversationStorage.stream()
                 .filter(item -> item.getClientID().equals(conversationID)).findFirst();
         
         if (storage.isPresent()) {
-            if (storage.get().stream().anyMatch(item -> item.getId().equals(mediaID))) {
-                SignalBus.fire(ServerRequestCode.imageSend, 
-                        String.format("%s|%s", mediaID, conversationID));
+            if (storage.get().stream().anyMatch(item -> item.id().equals(visualID))) {
+                SignalBus.fire(ServerRequestCode.visualSend, 
+                        String.format("%s|%s", visualID, conversationID));
                 return;
             }
-            storage.get().add(new MediaModel(mediaID, path));
+            var visualObject = deserializeVisualObject(visualData);
+            storage.get().add(new MediaModel(visualID, visualObject));
             outputStream.writeUTF(data);
         }
     }
@@ -74,7 +74,7 @@ public class ServerHandler implements Runnable {
     public void sendToClient(String mediaID, String receiverID)
             throws IOException {
         var data = MessageFormat.format("{0}|{1}|{2}",
-                ServerRequestCode.imageSend, mediaID, receiverID);
+                ServerRequestCode.visualSend, mediaID, receiverID);
         outputStream.writeUTF(data);
     }
     

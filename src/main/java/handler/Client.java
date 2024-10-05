@@ -48,10 +48,10 @@ public class Client {
         }
         catch (ConnectException connectException) {
             connectionListener.putValue("status", 404);
-            System.out.printf("Cant resolve host - %s : %s.", address.toString(), String.valueOf(port));
+            System.out.printf("Cant resolve host - %s : %s.", address.toString(), port);
         }
         catch (IOException e) {
-            System.out.printf("Disconnected from %s : %s.", address.toString(), String.valueOf(port));
+            System.out.printf("Disconnected from %s : %s.", address.toString(), port);
             try {
                 if (socket == null) return;
                 socket.close();
@@ -66,7 +66,7 @@ public class Client {
         SignalBus.subscribe(new SignalListener<String>(ServerRequestCode.clientHandshake, 
                 value -> id = value));
 
-        SignalBus.subscribe(new SignalListener<String>(ServerRequestCode.imageSend, 
+        SignalBus.subscribe(new SignalListener<String>(ServerRequestCode.visualSend, 
                 inline -> {
                     var args = Arrays.stream(inline.split("\\|")).toList();
                     try {
@@ -77,12 +77,12 @@ public class Client {
                 }
         ));
 
-        SignalBus.subscribe(new SignalListener<String>(ClientCode.imageUpload, inline -> {
+        SignalBus.subscribe(new SignalListener<String>(ClientCode.visualUpload, inline -> {
             var id = UUID.randomUUID().toString();
             try {
                 var conversationID = inline.split("\\|")[0];
-                var path = inline.split("\\|")[1];
-                handler.sendToServer(id, conversationID, path);
+                var data = inline.split("\\|")[1];
+                handler.sendToServer(id, conversationID, data);
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }

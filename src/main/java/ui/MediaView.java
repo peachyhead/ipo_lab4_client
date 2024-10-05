@@ -2,28 +2,31 @@ package ui;
 
 import core.MediaModel;
 
-import javax.imageio.ImageIO;
 import javax.swing.*;
 import java.awt.*;
-import java.awt.image.BufferedImage;
-import java.io.File;
 import java.io.IOException;
 
 public class MediaView extends JPanel {
-    private final MediaModel mediaModel;
     
-    private final BufferedImage bufferedImage;
+    private final MediaModel mediaModel;
 
     public MediaView(MediaModel mediaModel) throws IOException {
         this.mediaModel = mediaModel;
-        bufferedImage = ImageIO.read(new File(mediaModel.getPath()));
-        setPreferredSize(new Dimension(bufferedImage.getWidth(), bufferedImage.getHeight()));
+        var bounds = mediaModel.visualObject().shape().getBounds();
+        setPreferredSize(new Dimension(bounds.width, bounds.height));
     }
 
     @Override
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
         var g2d = (Graphics2D) g;
-        g2d.drawImage(bufferedImage, 0, 0, null);
+        if (mediaModel == null) return;
+        var visualObject = mediaModel.visualObject();
+        if (visualObject == null) return;
+        
+        g2d.setColor(visualObject.color());
+        if (visualObject.stroke() != null)
+            g2d.setStroke(visualObject.stroke());
+        g2d.draw(visualObject.shape());
     }
 }

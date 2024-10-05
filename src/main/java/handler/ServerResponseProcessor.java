@@ -5,19 +5,11 @@ import core.ConversationStorage;
 import core.MediaModel;
 import core.MediaStorage;
 import data.ServerRequestCode;
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
 
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import java.io.ByteArrayInputStream;
-import java.io.FileOutputStream;
-import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
-import java.util.Base64;
 import java.util.List;
 
-import static handler.XMLHandler.saveImageFromXMLData;
+import static handler.XMLHandler.deserializeVisualObject;
 
 public class ServerResponseProcessor {
     
@@ -28,15 +20,15 @@ public class ServerResponseProcessor {
     }
 
     public void process(String request, List<String> args) {
-        if (request.equals(ServerRequestCode.imageReceive)) {
-            if (onImageReceive(args)) return;
+        if (request.equals(ServerRequestCode.visualReceive)) {
+            if (onVisualReceive(args)) return;
         }
         if (request.equals(ServerRequestCode.clientHandshake)) {
             if (args.isEmpty()) return;
             SignalBus.fire(ServerRequestCode.clientHandshake, args.getFirst());
         }
-        if (request.equals(ServerRequestCode.imageLoadedOnServer)) {
-            if (onImageLoadedOnServer(args)) return;
+        if (request.equals(ServerRequestCode.visualLoadedOnServer)) {
+            if (onVisualLoadedOnServer(args)) return;
         }
         if (request.equals(ServerRequestCode.clientsUpdate)) {
             onClientsUpdate(args);
@@ -59,7 +51,7 @@ public class ServerResponseProcessor {
         }
     }
 
-    private boolean onImageLoadedOnServer(List<String> args) {
+    private boolean onVisualLoadedOnServer(List<String> args) {
         if (args.isEmpty()) return true;
         var mediaID = args.getFirst();
         if (mediaID.isEmpty()) return true;
@@ -68,14 +60,13 @@ public class ServerResponseProcessor {
                 .filter(item -> item.getClientID().equals(receiver)).findFirst();
         if (storage.isEmpty()) return true;
         var media = storage.get().stream()
-                .filter(item -> item.getId().equals(mediaID)).findFirst();
+                .filter(item -> item.id().equals(mediaID)).findFirst();
         if (media.isEmpty()) return true;
-        media.get().setUploaded(true);
-        SignalBus.fire(ServerRequestCode.imageSend, String.format("%s|%s", mediaID, receiver));
+        SignalBus.fire(ServerRequestCode.visualSend, String.format("%s|%s", mediaID, receiver));
         return false;
     }
 
-    private boolean onImageReceive(List<String> args) {
+    private boolean onVisualReceive(List<String> args) {
         if (args.isEmpty()) return true;
         var senderID = args.getFirst();
         var mediaID = args.stream().skip(1).findFirst();
@@ -84,8 +75,8 @@ public class ServerResponseProcessor {
         var storage = conversationStorage.stream()
                 .filter(item -> item.getClientID().equals(senderID)).findFirst();
         if (storage.isEmpty()) return true;
-        saveImageFromXMLData(mediaData.get(), mediaID.get());
-        var media = new MediaModel(mediaID.get(), mediaID.get());
+        var visualObject = deserializeVisualObject(mediaData.get());
+        var media = new MediaModel(mediaID.get(), visualObject);
         storage.get().add(media);
         return false;
     }

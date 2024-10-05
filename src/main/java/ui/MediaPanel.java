@@ -4,7 +4,6 @@ import base.SignalBus;
 import core.MediaModel;
 import core.MediaStorage;
 import data.ClientCode;
-import handler.DragAndDropHandler;
 
 import javax.swing.*;
 import java.awt.*;
@@ -22,28 +21,33 @@ public class MediaPanel extends JPanel {
         setBackground(Color.lightGray);
         
         var backButton = new JButton("Back");
-        backButton.setPreferredSize(new Dimension(100, 0));  // Ограничиваем ширину кнопки
-        backButton.setMaximumSize(new Dimension(100, Integer.MAX_VALUE));  // Ограничиваем ширину, но растягиваем по высоте
+        backButton.setPreferredSize(new Dimension(100, 0));
+        backButton.setMaximumSize(new Dimension(100, Integer.MAX_VALUE));
         backButton.addActionListener(e -> SignalBus.fire(ClientCode.openConversationPanel, ""));
         add(backButton, BorderLayout.WEST);
         
         imagePanel = new JPanel();
         imagePanel.setLayout(new GridBagLayout()); 
         imagePanel.setBackground(Color.lightGray);
-        
-        var scrollPane = new JScrollPane(imagePanel, JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED, JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
-        scrollPane.getVerticalScrollBar().setUnitIncrement(16); 
+
+        setupPanels(mediaStorage);
+    }
+
+    private void setupPanels(MediaStorage mediaStorage) {
+        var scrollPane = new JScrollPane(imagePanel, 
+                JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED, 
+                JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+        scrollPane.getVerticalScrollBar().setUnitIncrement(16);
         add(scrollPane, BorderLayout.CENTER);
-        
-        var handler = new DragAndDropHandler();
-        var dropArea = new DropArea(handler);
-        dropArea.setPreferredSize(new Dimension(300, 0));
-        add(dropArea, BorderLayout.EAST);
-        
-        handler.subscribeOnDrop(evt -> {
+
+        var selectionPanel = new VisualSelectionPanel();
+        selectionPanel.setPreferredSize(new Dimension(300, 0));
+        add(selectionPanel, BorderLayout.EAST);
+
+        selectionPanel.subscribeOnSelection(evt -> {
             var path = (String) evt.getNewValue();
             var conversation = mediaStorage.getClientID();
-            SignalBus.fire(ClientCode.imageUpload, String.format("%s|%s", conversation, path));
+            SignalBus.fire(ClientCode.visualUpload, String.format("%s|%s", conversation, path));
         });
     }
 
